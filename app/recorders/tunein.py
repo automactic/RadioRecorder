@@ -84,12 +84,14 @@ class TuneinStationRecorder:
             segment = await self.queue.get()
 
             # filename to save data
-            timestamp = segment.timestamp.replace(minute=0, second=0, microsecond=0).astimezone(dateutil.tz.tzlocal())
+            timezone = dateutil.tz.gettz('America/New_York')
+            timestamp = segment.timestamp.replace(minute=0, second=0, microsecond=0).astimezone(timezone)
             filename = f'{timestamp.strftime("%Y-%m-%d-%H-%M")}.ts'
 
             # append to file
             print(f'grabbing: {segment}')
             working_dir = Path('/data/MSNBC/')
+            working_dir.mkdir(parents=True, exist_ok=True)
             async with aiofiles.open(working_dir.joinpath(filename), 'ab') as file:
                 async with self.session.get(segment.url) as response:
                     content = await response.read()
