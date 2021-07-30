@@ -28,7 +28,7 @@ class TuneinStationRecorder:
         self.queue = asyncio.Queue()
 
     async def record(self):
-        stream_url = await self._get_stream_url()
+        self._stream_url = await self._get_stream_url()
         asyncio.create_task(self.grab())
 
         previous_contents = []
@@ -38,7 +38,7 @@ class TuneinStationRecorder:
 
         while True:
             # retrieve contents of the stream url
-            async with self.session.get(stream_url) as response:
+            async with self.session.get(self._stream_url) as response:
                 contents = (await response.text()).splitlines()
 
             # update sleep_time based on available duration
