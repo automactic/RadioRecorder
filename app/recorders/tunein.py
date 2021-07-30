@@ -29,10 +29,12 @@ class TuneinStationRecorder:
 
     async def record(self):
         self._stream_url = await self._get_stream_url()
-        asyncio.create_task(self.grab())
+        asyncio.create_task(self._grab())
         await self._stream()
 
     async def _stream(self):
+        """Periodically pull data from stream url, process data into segments, then put segments into queue."""
+
         previous_contents = []
         current_segment = None
         ad_segment_in_progress = False
@@ -74,16 +76,16 @@ class TuneinStationRecorder:
             current_segment = None
             await asyncio.sleep(sleep_time)
 
-    async def grab(self):
-        """Grab segment data and save to file."""
+    async def _grab(self):
+        """Grab data for each segment and save to file."""
 
         while True:
-            # get the next segment
+            # get the next segment form queue
             segment = await self.queue.get()
 
             # filename to save data
             timezone = dateutil.tz.gettz('America/New_York')
-            timestamp = segment.timestamp.replace(minute=0, second=0, microsecond=0).astimezone(timezone)
+            timestamp = segment.timestamp.replace(minute=0).astimezone(timezone)
             filename = f'{timestamp.strftime("%Y-%m-%d-%H-%M")}.ts'
 
             # append to file
