@@ -18,6 +18,8 @@ class Segment:
 
 
 class TuneinStationRecorder:
+    DEFAULT_SLEEP_TIME = 120
+
     def __init__(self, station_id: str, session: aiohttp.ClientSession):
         self.station_id = station_id
         self.session = session
@@ -109,12 +111,13 @@ class TuneinStationRecorder:
                 return line
             return None
 
-    @staticmethod
-    def _get_content_duration(lines: [str]) -> Optional[float]:
+    def _get_content_duration(self, lines: [str]) -> float:
+        """Get available duration from response content of the stream url."""
+
         for line in lines:
             if line.startswith('#EXT-X-COM-TUNEIN-AVAIL-DUR:'):
                 try:
                     return float(line.replace('#EXT-X-COM-TUNEIN-AVAIL-DUR:', ''))
                 except ValueError:
-                    return None
-        return None
+                    break
+        return self.DEFAULT_SLEEP_TIME
