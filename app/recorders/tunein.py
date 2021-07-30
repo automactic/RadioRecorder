@@ -41,40 +41,41 @@ class TuneinStationRecorder:
         ad_segment_in_progress = False
 
         while True:
+            # retrieve contents of the stream url
             async with self.session.get(stream_url) as response:
                 contents = (await response.text()).splitlines()
 
-                # update sleep_time based on available duration
-                if content_duration := self._get_content_duration(contents):
-                    sleep_time = content_duration * 2 // 3
-                    print('sleep_time', sleep_time)
+            # update sleep_time based on available duration
+            if content_duration := self._get_content_duration(contents):
+                sleep_time = content_duration * 2 // 3
+                print('sleep_time', sleep_time)
 
-                # find new lines
-                diff = difflib.ndiff(previous_contents, contents)
-                new_lines = [line for line in diff if line.startswith('+')]
+            # find new lines
+            diff = difflib.ndiff(previous_contents, contents)
+            new_lines = [line for line in diff if line.startswith('+')]
 
-                # process new lines
-                for new_line in new_lines:
-                    # strip out ads
-                    if 'X-TUNEIN-AD-EVENT="START"' in new_line:
-                        ad_segment_in_progress = True
-                    if 'X-TUNEIN-AD-EVENT="END"' in new_line:
-                        ad_segment_in_progress = False
-                    if ad_segment_in_progress:
-                        continue
+            # process new lines
+            for new_line in new_lines:
+                # strip out ads
+                if 'X-TUNEIN-AD-EVENT="START"' in new_line:
+                    ad_segment_in_progress = True
+                if 'X-TUNEIN-AD-EVENT="END"' in new_line:
+                    ad_segment_in_progress = False
+                if ad_segment_in_progress:
+                    continue
 
-                    # parse segments
-                    line = new_line.split(' ')[-1]
-                    if line.startswith('#EXT-X-PROGRAM-DATE-TIME:'):
-                        timestamp = dateutil.parser.parse(line.replace('#EXT-X-PROGRAM-DATE-TIME:', ''))
-                        current_segment = Segment(timestamp=timestamp)
-                    if line.startswith('http') and current_segment:
-                        current_segment.url = line
-                        self.queue.put_nowait(current_segment)
-                        current_segment = None
+                # parse segment and put into queue
+                line = new_line.split(' ')[-1]
+                if line.startswith('#EXT-X-PROGRAM-DATE-TIME:'):
+                    timestamp = dateutil.parser.parse(line.replace('#EXT-X-PROGRAM-DATE-TIME:', ''))
+                    current_segment = Segment(timestamp=timestamp)
+                if line.startswith('http') and current_segment:
+                    current_segment.url = line
+                    self.queue.put_nowait(current_segment)
+                    current_segment = None
 
-                previous_contents = contents
-                await asyncio.sleep(sleep_time)
+            previous_contents = contents
+            await asyncio.sleep(sleep_time)
 
     async def grab(self):
         """Grab segment data and save to file."""
