@@ -30,10 +30,11 @@ class TuneinStationRecorder:
     async def record(self):
         self._stream_url = await self._get_stream_url()
         asyncio.create_task(self.grab())
+        await self._stream()
 
+    async def _stream(self):
         previous_contents = []
         current_segment = None
-        sleep_time = 120
         ad_segment_in_progress = False
 
         while True:
@@ -42,9 +43,7 @@ class TuneinStationRecorder:
                 contents = (await response.text()).splitlines()
 
             # update sleep_time based on available duration
-            if content_duration := self._get_content_duration(contents):
-                sleep_time = content_duration * 2 // 3
-                print('sleep_time', sleep_time)
+            sleep_time = self._get_sleep_time(contents)
 
             # find new lines
             diff = difflib.ndiff(previous_contents, contents)
@@ -70,7 +69,9 @@ class TuneinStationRecorder:
                     self.queue.put_nowait(current_segment)
                     current_segment = None
 
+            # finished processing response content, prepare for the next iteration
             previous_contents = contents
+            current_segment = None
             await asyncio.sleep(sleep_time)
 
     async def grab(self):
@@ -111,13 +112,19 @@ class TuneinStationRecorder:
                 return line
             return None
 
-    def _get_content_duration(self, lines: [str]) -> float:
-        """Get available duration from response content of the stream url."""
+    def _get_sleep_time(self, lines: [str]) -> int:
+        """Get sleep time based on available duration in response content of the stream URL.
 
+        :param lines: response content of the stream URL, split into lines
+        :return: sleep time, which determines how long to wait between starting the next iteration
+        """
+
+        available_duration = None
         for line in lines:
             if line.startswith('#EXT-X-COM-TUNEIN-AVAIL-DUR:'):
                 try:
-                    return float(line.replace('#EXT-X-COM-TUNEIN-AVAIL-DUR:', ''))
+                    available_duration = float(line.replace('#EXT-X-COM-TUNEIN-AVAIL-DUR:', ''))
                 except ValueError:
-                    break
-        return self.DEFAULT_SLEEP_TIME
+                    pass
+                break
+        return available_duration * 4 // 5 if available_duration else self.DEFAULT_SLEEP_TIME
