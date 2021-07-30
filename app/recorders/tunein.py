@@ -21,18 +21,12 @@ class TuneinStationRecorder:
     def __init__(self, station_id: str, session: aiohttp.ClientSession):
         self.station_id = station_id
         self.session = session
+
+        self._stream_url = None
         self.queue = asyncio.Queue()
 
-    async def get_stream_url(self) -> str:
-        headers = {'id': self.station_id, 'formats': 'hls'}
-        async with self.session.get('https://opml.radiotime.com/Tune.ashx', params=headers) as response:
-            master_playlist = await response.text()
-            async with self.session.get(master_playlist) as response:
-                content = await response.text()
-                return content.split()[-1]
-
     async def record(self):
-        stream_url = await self.get_stream_url()
+        stream_url = await self._get_stream_url()
         asyncio.create_task(self.grab())
 
         previous_contents = []
@@ -100,6 +94,20 @@ class TuneinStationRecorder:
 
             # let the queue know the task is done
             self.queue.task_done()
+
+    async def _get_stream_url(self) -> Optional[str]:
+        """Get the first stream url in the master playlist of the station."""
+
+        params = {'id': self.station_id, 'formats': 'hls'}
+        async with self.session.get('https://opml.radiotime.com/Tune.ashx', params=params) as response:
+            master_playlist = await response.text()
+        async with self.session.get(master_playlist) as response:
+            content = await response.text()
+            for line in content.splitlines():
+                if line.startswith('#EXT'):
+                    continue
+                return line
+            return None
 
     @staticmethod
     def _get_content_duration(lines: [str]) -> Optional[float]:
