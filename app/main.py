@@ -1,8 +1,11 @@
 import asyncio
+import logging
 
 import aiohttp
 
 from recorders import TuneinStationRecorder
+
+logging.basicConfig(level=logging.INFO)
 
 
 async def main():

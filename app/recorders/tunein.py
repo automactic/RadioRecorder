@@ -1,5 +1,6 @@
 import asyncio
 import difflib
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -9,6 +10,8 @@ import aiofiles
 import aiohttp
 import dateutil.parser
 import dateutil.tz
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -25,10 +28,15 @@ class TuneinStationRecorder:
         self.session = session
 
         self._stream_url = None
-        self.queue = asyncio.Queue()
+        self._segment_queue = asyncio.Queue()
+        self._conversion_queue = asyncio.Queue()
 
     async def record(self):
         self._stream_url = await self._get_stream_url()
+        if not self._stream_url:
+            logger.error(f'Unable to retrieve streaming url for station {self.station_id}')
+            return
+
         asyncio.create_task(self._grab())
         await self._stream()
 
@@ -68,7 +76,7 @@ class TuneinStationRecorder:
                     current_segment = Segment(timestamp=timestamp)
                 if line.startswith('http') and current_segment:
                     current_segment.url = line
-                    self.queue.put_nowait(current_segment)
+                    self._segment_queue.put_nowait(current_segment)
                     current_segment = None
 
             # finished processing response content, prepare for the next iteration
@@ -79,9 +87,11 @@ class TuneinStationRecorder:
     async def _grab(self):
         """Grab data for each segment and save to file."""
 
+        previous_segment: Optional[Segment] = None
+
         while True:
             # get the next segment form queue
-            segment = await self.queue.get()
+            segment = await self._segment_queue.get()
 
             # filename to save data
             timezone = dateutil.tz.gettz('America/New_York')
@@ -89,7 +99,7 @@ class TuneinStationRecorder:
             filename = f'{timestamp.strftime("%Y-%m-%d-%H-%M")}.ts'
 
             # append to file
-            print(f'grabbing: {segment}')
+            logger.debug(f'Grabbing segment: {segment.timestamp}')
             working_dir = Path('/data/MSNBC/')
             working_dir.mkdir(parents=True, exist_ok=True)
             async with aiofiles.open(working_dir.joinpath(filename), 'ab') as file:
@@ -98,7 +108,9 @@ class TuneinStationRecorder:
                     await file.write(content)
 
             # let the queue know the task is done
-            self.queue.task_done()
+            self._segment_queue.task_done()
+
+            previous_segment = segment
 
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
