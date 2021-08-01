@@ -81,7 +81,6 @@ class TuneinStationRecorder:
 
             # finished processing response content, prepare for the next iteration
             previous_contents = contents
-            current_segment = None
             await asyncio.sleep(sleep_time)
 
     async def _grab(self):
