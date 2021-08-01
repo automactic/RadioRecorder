@@ -79,14 +79,14 @@ class TuneinStationRecorder:
                     self._segment_queue.put_nowait(current_segment)
                     current_segment = None
 
-            # finished processing response content, prepare for the next iteration
+            # finished processing response content, prepare for the next loop
             previous_contents = contents
             await asyncio.sleep(sleep_time)
 
     async def _grab(self):
         """Grab data for each segment and save to file."""
 
-        previous_segment: Optional[Segment] = None
+        previous_file_path: Optional[Path] = None
 
         while True:
             # get the next segment form queue
@@ -101,7 +101,8 @@ class TuneinStationRecorder:
             logger.debug(f'Grabbing segment: {segment.timestamp}')
             working_dir = Path('/data/MSNBC/')
             working_dir.mkdir(parents=True, exist_ok=True)
-            async with aiofiles.open(working_dir.joinpath(filename), 'ab') as file:
+            file_path = working_dir.joinpath(filename)
+            async with aiofiles.open(file_path, 'ab') as file:
                 async with self.session.get(segment.url) as response:
                     content = await response.read()
                     await file.write(content)
@@ -109,7 +110,12 @@ class TuneinStationRecorder:
             # let the queue know the task is done
             self._segment_queue.task_done()
 
-            previous_segment = segment
+            # if a new file is being created, put the previous file path into conversion queue
+            if previous_file_path and file_path != previous_file_path:
+                self._conversion_queue.put_nowait(previous_file_path)
+
+            # prepare for the next loop
+            previous_file_path = file_path
 
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
