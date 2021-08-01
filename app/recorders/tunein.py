@@ -87,7 +87,7 @@ class TuneinStationRecorder:
     async def _grab(self):
         """Grab data for each segment and save to file."""
 
-        previous_file_path: Optional[Path] = None
+        previous_path: Optional[Path] = None
 
         while True:
             # get the next segment form queue
@@ -102,8 +102,8 @@ class TuneinStationRecorder:
             logger.debug(f'Grabbing segment: {segment.timestamp}')
             working_dir = Path('/data/MSNBC/')
             working_dir.mkdir(parents=True, exist_ok=True)
-            file_path = working_dir.joinpath(filename)
-            async with aiofiles.open(file_path, 'ab') as file:
+            path = working_dir.joinpath(filename)
+            async with aiofiles.open(path, 'ab') as file:
                 async with self.session.get(segment.url) as response:
                     content = await response.read()
                     await file.write(content)
@@ -112,11 +112,11 @@ class TuneinStationRecorder:
             self._segment_queue.task_done()
 
             # if a new file is being created, put the previous file path into conversion queue
-            if previous_file_path and file_path != previous_file_path:
-                self._conversion_queue.put_nowait(previous_file_path)
+            if previous_path and path != previous_path:
+                self._conversion_queue.put_nowait(previous_path)
 
             # prepare for the next loop
-            previous_file_path = file_path
+            previous_path = path
 
     async def _convert(self):
         """Convert files to m4a."""
