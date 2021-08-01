@@ -38,6 +38,7 @@ class TuneinStationRecorder:
             return
 
         asyncio.create_task(self._grab())
+        asyncio.create_task(self._convert())
         await self._stream()
 
     async def _stream(self):
@@ -116,6 +117,15 @@ class TuneinStationRecorder:
 
             # prepare for the next loop
             previous_file_path = file_path
+
+    async def _convert(self):
+        """Convert files to m4a."""
+
+        while True:
+            # get the next path form queue
+            path = await self._conversion_queue.get()
+
+            logger.info(f'Convert the file: {path}')
 
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
