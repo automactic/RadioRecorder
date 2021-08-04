@@ -39,6 +39,7 @@ class TuneinStationRecorder:
 
         asyncio.create_task(self._grab())
         asyncio.create_task(self._convert())
+        asyncio.create_task(self._update_stream_url())
         await self._stream()
 
     async def _stream(self):
@@ -126,6 +127,14 @@ class TuneinStationRecorder:
             path = await self._conversion_queue.get()
 
             logger.info(f'Convert the file: {path}')
+
+    async def _update_stream_url(self):
+        """Update stream URL (first stream url in the master playlist of the station)."""
+
+        while True:
+            self._stream_url = await self._get_stream_url()
+            logger.info('Updated streaming URL.')
+            await asyncio.sleep(3600)
 
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
