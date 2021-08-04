@@ -124,9 +124,14 @@ class TuneinStationRecorder:
 
         while True:
             # get the next path form queue
-            path = await self._conversion_queue.get()
+            path: Path = await self._conversion_queue.get()
 
-            logger.info(f'Convert the file: {path}')
+            # convert file
+            logger.info(f'Converting file: {path}')
+            process = await asyncio.create_subprocess_exec(
+                'ffmpeg', '-i', path, '-c', 'copy', path.with_suffix('m4v')
+            )
+            await process.communicate()
 
     async def _update_stream_url(self):
         """Update stream URL (first stream url in the master playlist of the station)."""
