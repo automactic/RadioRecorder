@@ -137,8 +137,12 @@ class TuneinStationRecorder:
             await process.communicate()
 
             # add ID3 tags
+            timestamp = datetime.strptime(input_path.with_suffix('').name, "%Y-%m-%d-%H-%M")
             audio = mutagen.easyid3.EasyID3(output_path)
-            audio['title'] = ''
+            audio['album'] = timestamp.strftime('%Y%m%d')
+            audio['title'] = timestamp.strftime('%H:%M')
+            audio['tracknumber'] = timestamp.hour
+            audio['artist'] = self._station_name
             audio.save()
 
             # deleted original file
