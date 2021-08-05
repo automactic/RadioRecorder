@@ -10,7 +10,7 @@ import aiofiles
 import aiohttp
 import dateutil.parser
 import dateutil.tz
-
+import mutagen.easyid3
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +27,7 @@ class TuneinStationRecorder:
         self.station_id = station_id
         self.session = session
 
+        self._station_name = 'MSNBC'
         self._stream_url = None
         self._segment_queue = asyncio.Queue()
         self._conversion_queue = asyncio.Queue()
@@ -39,7 +40,6 @@ class TuneinStationRecorder:
 
         asyncio.create_task(self._grab())
         asyncio.create_task(self._convert())
-        asyncio.create_task(self._update_stream_url())
         await self._stream()
 
     async def _stream(self):
@@ -124,27 +124,25 @@ class TuneinStationRecorder:
 
         while True:
             # get the next path form queue
-            path: Path = await self._conversion_queue.get()
+            input_path: Path = await self._conversion_queue.get()
+            output_path = input_path.with_suffix('.mp3')
 
-            # convert file
-            logger.info(f'Converting file: {path}')
+            # convert file to mp3
+            logger.info(f'Converting file: {input_path}')
             process = await asyncio.create_subprocess_exec(
-                'ffmpeg', '-i', path, '-c', 'copy', path.with_suffix('.m4a'),
+                'ffmpeg', '-i', input_path, output_path,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )
             await process.communicate()
 
+            # add ID3 tags
+            audio = mutagen.easyid3.EasyID3(output_path)
+            audio['title'] = ''
+            audio.save()
+
             # deleted original file
-            path.unlink()
-
-    async def _update_stream_url(self):
-        """Update stream URL (first stream url in the master playlist of the station)."""
-
-        while True:
-            await asyncio.sleep(3600)
-            self._stream_url = await self._get_stream_url()
-            logger.info(f'Updated stream URL: {self._stream_url}')
+            input_path.unlink()
 
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
