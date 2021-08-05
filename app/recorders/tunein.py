@@ -129,17 +129,22 @@ class TuneinStationRecorder:
             # convert file
             logger.info(f'Converting file: {path}')
             process = await asyncio.create_subprocess_exec(
-                'ffmpeg', '-i', path, '-c', 'copy', path.with_suffix('m4v')
+                'ffmpeg', '-i', path, '-c', 'copy', path.with_suffix('.m4v'),
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
             )
             await process.communicate()
+
+            # deleted original file
+            path.unlink()
 
     async def _update_stream_url(self):
         """Update stream URL (first stream url in the master playlist of the station)."""
 
         while True:
-            self._stream_url = await self._get_stream_url()
-            logger.info('Updated streaming URL.')
             await asyncio.sleep(3600)
+            self._stream_url = await self._get_stream_url()
+            logger.info(f'Updated stream URL: {self._stream_url}')
 
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
