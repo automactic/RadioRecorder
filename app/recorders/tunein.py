@@ -129,7 +129,7 @@ class TuneinStationRecorder:
             # convert file
             logger.info(f'Converting file: {path}')
             process = await asyncio.create_subprocess_exec(
-                'ffmpeg', '-i', path, '-c', 'copy', path.with_suffix('.m4v'),
+                'ffmpeg', '-i', path, '-c', 'copy', path.with_suffix('.m4a'),
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )
