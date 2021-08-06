@@ -125,7 +125,15 @@ class TuneinStationRecorder:
         while True:
             # get the next path form queue
             input_path: Path = await self._conversion_queue.get()
-            output_path = input_path.with_suffix('.mp3')
+
+            # get albumn name
+            timestamp = datetime.strptime(input_path.with_suffix('').name, "%Y-%m-%d-%H-%M")
+            albumn_name = timestamp.strftime('%Y%m%d')
+
+            # get output path
+            output_path_parts = list(input_path.with_suffix('.mp3').parts)
+            output_path_parts.insert(-1, albumn_name)
+            output_path = Path(*output_path_parts)
 
             # convert file to mp3
             logger.info(f'Converting file: {input_path}')
@@ -137,11 +145,10 @@ class TuneinStationRecorder:
             await process.communicate()
 
             # add ID3 tags
-            timestamp = datetime.strptime(input_path.with_suffix('').name, "%Y-%m-%d-%H-%M")
             audio = mutagen.easyid3.EasyID3(output_path)
             audio['album'] = timestamp.strftime('%Y%m%d')
             audio['title'] = timestamp.strftime('%H:%M')
-            audio['tracknumber'] = timestamp.hour
+            audio['tracknumber'] = str(timestamp.hour)
             audio['artist'] = self._station_name
             audio.save()
 
