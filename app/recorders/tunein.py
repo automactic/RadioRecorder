@@ -11,6 +11,7 @@ import aiohttp
 import dateutil.parser
 import dateutil.tz
 import mutagen.easyid3
+
 logger = logging.getLogger(__name__)
 
 
@@ -133,6 +134,7 @@ class TuneinStationRecorder:
             # get output path
             output_path_parts = list(input_path.with_suffix('.mp3').parts)
             output_path_parts.insert(-1, albumn_name)
+            Path(*output_path_parts[:-1]).mkdir(exist_ok=True)
             output_path = Path(*output_path_parts)
 
             # convert file to mp3
