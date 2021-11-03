@@ -138,13 +138,14 @@ class TuneinStationRecorder:
             output_path = Path(*output_path_parts)
 
             # convert file to mp3
-            logger.info(f'Converting file: {input_path}')
+            logger.info(f'Start converting file: {input_path}')
             process = await asyncio.create_subprocess_exec(
                 'ffmpeg', '-i', input_path, output_path,
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
             await process.communicate()
+            logger.info(f'End converting file: {input_path}')
 
             # add ID3 tags
             audio = mutagen.easyid3.EasyID3(output_path)
