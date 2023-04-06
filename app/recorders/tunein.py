@@ -179,12 +179,14 @@ class TuneinStationRecorder:
         :return: sleep time, which determines how long to wait between starting the next iteration
         """
 
-        available_duration = None
-        for line in lines:
-            if line.startswith('#EXT-X-COM-TUNEIN-AVAIL-DUR:'):
-                try:
-                    available_duration = float(line.replace('#EXT-X-COM-TUNEIN-AVAIL-DUR:', ''))
-                except ValueError:
-                    pass
-                break
-        return available_duration * 4 // 5 if available_duration else self.DEFAULT_SLEEP_TIME
+        return 60
+
+        # available_duration = None
+        # for line in lines:
+        #     if line.startswith('#EXT-X-COM-TUNEIN-AVAIL-DUR:'):
+        #         try:
+        #             available_duration = float(line.replace('#EXT-X-COM-TUNEIN-AVAIL-DUR:', ''))
+        #         except ValueError:
+        #             pass
+        #         break
+        # return available_duration * 4 // 5 if available_duration else self.DEFAULT_SLEEP_TIME
