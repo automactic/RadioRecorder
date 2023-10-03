@@ -102,7 +102,7 @@ class TuneinStationRecorder:
 
             # append to file
             logger.debug(f'Grabbing segment: {segment.timestamp}')
-            working_dir = Path('/data/MSNBC/')
+            working_dir = Path('/Users/chrisli/Developer/RadioRecorder/data/MSNBC/')
             working_dir.mkdir(parents=True, exist_ok=True)
             path = working_dir.joinpath(filename)
             async with aiofiles.open(path, 'ab') as file:
@@ -161,7 +161,7 @@ class TuneinStationRecorder:
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
 
-        params = {'id': self.station_id, 'formats': 'hls', 'partnerId': 'RadioTime', 'version': '5.89'}
+        params = {'id': self.station_id, 'formats': 'hls', 'partnerId': 'RadioTime', 'version': '5.89', 'serial': 'a8c9e577-eb37-49fb-bac7-3cedec423c85'}
         async with self.session.get('https://opml.radiotime.com/Tune.ashx', params=params) as response:
             master_playlist = await response.text()
         async with self.session.get(master_playlist) as response:
