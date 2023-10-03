@@ -102,7 +102,7 @@ class TuneinStationRecorder:
 
             # append to file
             logger.debug(f'Grabbing segment: {segment.timestamp}')
-            working_dir = Path('/Users/chrisli/Developer/RadioRecorder/data/MSNBC/')
+            working_dir = Path('/data/MSNBC/')
             working_dir.mkdir(parents=True, exist_ok=True)
             path = working_dir.joinpath(filename)
             async with aiofiles.open(path, 'ab') as file:
