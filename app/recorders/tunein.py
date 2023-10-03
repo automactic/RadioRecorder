@@ -161,7 +161,7 @@ class TuneinStationRecorder:
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
 
-        params = {'id': self.station_id, 'formats': 'hls'}
+        params = {'id': self.station_id, 'formats': 'hls', 'partnerId': 'RadioTime', 'version': '5.89'}
         async with self.session.get('https://opml.radiotime.com/Tune.ashx', params=params) as response:
             master_playlist = await response.text()
         async with self.session.get(master_playlist) as response:
