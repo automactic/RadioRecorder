@@ -1,6 +1,7 @@
 import asyncio
 import difflib
 import logging
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -38,6 +39,7 @@ class TuneinStationRecorder:
         if not self._stream_url:
             logger.error(f'Unable to retrieve streaming url for station {self.station_id}')
             return
+        logger.info(f'Retrieved stream URL {self._stream_url}')
 
         asyncio.create_task(self._grab())
         asyncio.create_task(self._convert())
@@ -161,8 +163,8 @@ class TuneinStationRecorder:
     async def _get_stream_url(self) -> Optional[str]:
         """Get the first stream url in the master playlist of the station."""
 
-        params = {'id': self.station_id, 'formats': 'hls', 'partnerId': 'RadioTime', 'version': '5.89', 'serial': 'a8c9e577-eb37-49fb-bac7-3cedec423c85'}
-        async with self.session.get('https://opml.radiotime.com/Tune.ashx', params=params) as response:
+        url = os.environ.get('TUNE_URL')
+        async with self.session.get(url) as response:
             master_playlist = await response.text()
         async with self.session.get(master_playlist) as response:
             content = await response.text()
